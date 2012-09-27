@@ -8,6 +8,7 @@ fs            = require 'fs'
 path          = require 'path'
 _             = require 'underscore'
 {parse}       = require 'url'
+util          = require 'util'
 
 libs = {}
 jsCompilers = Snockets.compilers
@@ -145,8 +146,8 @@ class ConnectAssets
       console.error "Can't resolve image path: #{resolvedPath}"
     return "url('#{resolvedPath}')"
 
-  fixCSSImagePaths: (css) ->
-    regex = /url\([^\)]+\)/g
+  fixCSSUrlPaths: (css) ->
+    regex = /url\((?!"\/|'\/|\/)[^\)]+\)/g
     css = css.replace regex, @resolveImgPath.bind(@)
     return css
 
@@ -165,7 +166,7 @@ class ConnectAssets
           else
             {mtime} = stats
             css = (fs.readFileSync @absPath(sourcePath)).toString 'utf8'
-            css = @fixCSSImagePaths css
+            css = @fixCSSUrlPaths css
         else
           if timeEq stats.mtime, @cssSourceFiles[sourcePath]?.mtime
             source = @cssSourceFiles[sourcePath].data.toString 'utf8'
@@ -179,6 +180,7 @@ class ConnectAssets
             alreadyCached = true
           else
             mtime = new Date
+            css = @fixCSSUrlPaths css
             @compiledCss[sourcePath] = {data: new Buffer(css), mtime}
 
         if alreadyCached and @options.build
